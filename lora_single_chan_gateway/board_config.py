@@ -78,10 +78,10 @@ class LoraBoardDraguino():
 
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
 
-        frf = int((self.frequency << 19) / 32000000, 64)
+        frf = int((self.frequency << 19) / 32000000)
         self.write_register(SX127x.REG_FRF_MSB, (frf >> 16) & 0xFF)
-        self.write_register(SX127x.REG_FRF_MID, (frf >> 16) & 0xFF)
-        self.write_register(SX127x.REG_FRF_LSB, (frf >> 16) & 0xFF)
+        self.write_register(SX127x.REG_FRF_MID, (frf >> 8) & 0xFF)
+        self.write_register(SX127x.REG_FRF_LSB, frf & 0xFF)
 
         self.write_register(SX127x.REG_SYNC_WORD, 0x34);  # LoRaWAN public sync word
 
