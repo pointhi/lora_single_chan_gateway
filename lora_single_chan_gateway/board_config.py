@@ -23,8 +23,6 @@ class LoraBoardDraguino():
 
         self.spi = None
 
-        self.setup_device()
-
     def __enter__(self):
         self.setup_device()
         return self

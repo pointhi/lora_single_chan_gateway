@@ -6,6 +6,9 @@ from board_config import LoraBoardDraguino
 import RPi.GPIO as GPIO
 
 
+logging.basicConfig(level=logging.DEBUG)
+
+
 if __name__ == "__main__":
     with LoraBoardDraguino(433300000, 7) as board:
         logging.info("Listening at SF{} on {} MHz".format(board.sf, board.frequency/1000000))
