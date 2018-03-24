@@ -46,7 +46,7 @@ class LoraBoardDraguino():
     def _init_spi(self):
         self.spi = spidev.SpiDev()
         self.spi.open(self._spi_bus, self._spi_cs)
-        self.spi.max_speed_hz = 1000000  # TODO: what value works good?
+        self.spi.max_speed_hz = 5000000  # TODO: what value works good?
 
     def setup_device(self):
         self._init_pins()
@@ -143,8 +143,11 @@ class LoraBoardDraguino():
         if irqflags & 0x20:
             logging.warning("CRC error")
             self.write_register(SX127x.REG_IRQ_FLAGS, 0x20)
-            return {'datetime': datetime.datetime.now(),
-                     'crc': False}  # TODO: still get payload?
+            crc = False
+            #return {'datetime': datetime.datetime.now(),
+            #         'crc': False}  # TODO: still get payload?
+        else:
+            crc = True
 
         current_addr = self.read_register(SX127x.REG_FIFO_RX_CURRENT_ADDR)
         received_count = self.read_register(SX127x.REG_RX_NB_BYTES)
@@ -156,7 +159,7 @@ class LoraBoardDraguino():
             payload.append(self.read_register(SX127x.REG_FIFO))
 
         return {'datetime': datetime.datetime.now(),
-                'crc': True,
+                'crc': crc,
                 'pkt_snr': self.pkt_snr,
                 'pkt_rssi': self.pkt_rssi,
                 'rssi': self.rssi,
