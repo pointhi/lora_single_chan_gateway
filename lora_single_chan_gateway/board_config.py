@@ -1,4 +1,5 @@
 
+import datetime
 import logging
 import time
 
@@ -22,6 +23,7 @@ class LoraBoardDraguino():
         self._spi_cs = 0    # TODO: Draguino has it's own non-standard CS pin
 
         self.spi = None
+        self._is_sx1272 = None  # is set in setup
 
     def __enter__(self):
         self.setup_device()
@@ -59,7 +61,7 @@ class LoraBoardDraguino():
 
         if version == 0x22:
             logging.info("SX1272 detected, starting...")
-            sx1272 = True
+            self._is_sx1272 = True
         else:
             # sx1276?
             GPIO.output(self._pin_rst, 0)
@@ -71,7 +73,7 @@ class LoraBoardDraguino():
 
             if version == 0x12:
                 logging.info("SX1276 detected, starting...")
-                sx1272 = False
+                self._is_sx1272 = False
             else:
                 logging.critical("Unrecognized transceiver")
                 raise RuntimeError("Unrecognized transceiver")
@@ -85,7 +87,7 @@ class LoraBoardDraguino():
 
         self.write_register(SX127x.REG_SYNC_WORD, 0x34);  # LoRaWAN public sync word
 
-        if sx1272:
+        if self._is_sx1272:
             if self.sf == 11 or self.sf == 12:
                 self.write_register(SX127x.REG_MODEM_CONFIG, 0x0B)
             else:
@@ -138,11 +140,11 @@ class LoraBoardDraguino():
         self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
 
         irqflags = self.read_register(SX127x.REG_IRQ_FLAGS)
-
-        if irqflags & 0x20 == 0x20:
+        if irqflags & 0x20:
             logging.warning("CRC error")
             self.write_register(SX127x.REG_IRQ_FLAGS, 0x20)
-            return {'crc': False}
+            return {'datetime': datetime.datetime.now(),
+                     'crc': False}  # TODO: still get payload?
 
         current_addr = self.read_register(SX127x.REG_FIFO_RX_CURRENT_ADDR)
         received_count = self.read_register(SX127x.REG_RX_NB_BYTES)
@@ -153,7 +155,37 @@ class LoraBoardDraguino():
         for _ in range(received_count):
             payload.append(self.read_register(SX127x.REG_FIFO))
 
-        return {'crc': True, 'payload:': bytes(payload)}
+        return {'datetime': datetime.datetime.now(),
+                'crc': True,
+                'pkt_snr': self.pkt_snr,
+                'pkt_rssi': self.pkt_rssi,
+                'rssi': self.rssi,
+                'payload:': bytes(payload)}
+
+    @property
+    def pkt_snr(self):
+        snr_value = self.read_register(SX127x.REG_PKT_SNR_VALUE)
+        if snr_value & 0x80:
+            snr_value = ((~snr_value + 1) & 0xFF) >> 2
+            return -snr_value
+        else:
+            return (snr_value & 0xFF) >> 2
+
+    @property
+    def pkt_rssi(self):
+        if self._is_sx1272:
+            rssicorr = 139
+        else:
+            rssicorr = 157
+        return self.read_register(0x1A) - rssicorr
+
+    @property
+    def rssi(self):
+        if self._is_sx1272:
+            rssicorr = 139
+        else:
+            rssicorr = 157
+        return self.read_register(0x1B) - rssicorr
 
 
 class SX127x:
