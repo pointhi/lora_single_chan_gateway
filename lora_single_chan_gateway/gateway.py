@@ -21,7 +21,7 @@ def construct_semtec_udp(board, payload):
                 "datr": "SF7BW125",  # TODO: configurable
                 "codr": "4/5",
                 "rssi": payload['pkt_rssi'],
-                "lsnr": payload['pkt_ssr'],
+                "lsnr": payload['pkt_snr'],
                 "size": len(payload['payload']),
                 "data": base64.standard_b64encode(payload['payload'])
             }
