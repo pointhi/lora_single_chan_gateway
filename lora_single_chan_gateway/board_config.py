@@ -85,7 +85,7 @@ class LoraBoardDraguino():
         self.write_register(SX127x.REG_FRF_MID, (frf >> 8) & 0xFF)
         self.write_register(SX127x.REG_FRF_LSB, frf & 0xFF)
 
-        self.write_register(SX127x.REG_SYNC_WORD, 0x34);  # LoRaWAN public sync word
+        #self.write_register(SX127x.REG_SYNC_WORD, 0x34);  # LoRaWAN public sync word
 
         if self._is_sx1272:
             if self.sf == 11 or self.sf == 12:
