@@ -158,7 +158,7 @@ class LoraBoardDraguino():
         for _ in range(received_count):
             payload.append(self.read_register(SX127x.REG_FIFO))
 
-        return {'datetime': datetime.datetime.now(),
+        return {'datetime': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc),
                 'crc': crc,
                 'pkt_snr': self.pkt_snr,
                 'pkt_rssi': self.pkt_rssi,

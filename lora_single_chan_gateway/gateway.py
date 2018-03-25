@@ -13,7 +13,7 @@ import RPi.GPIO as GPIO
 logging.basicConfig(level=logging.DEBUG)
 
 
-GATEWAY_HOST = "eu.thethings.network"
+GATEWAY_HOST = "router.eu.thethings.network"
 GATEWAY_PORT = 1700
 
 def construct_semtec_udp(board, payload):
