@@ -1,3 +1,4 @@
+# configuration based on: https://github.com/PaulStoffregen/RadioHead/blob/master/RH_RF95.cpp
 
 import datetime
 import logging
@@ -6,24 +7,20 @@ import time
 import RPi.GPIO as GPIO
 import spidev
 
-
-class LoraBoardDraguino():
-    def __init__(self, frequency, sf):
-        assert 7 <= sf <= 12
-
-        self.frequency = frequency
-        self.sf = sf
-
-        # pin are given in BCM schema
-        self._pin_ss = 25   # GPIO 6
+class RF95(object):
+    def __init__(self):
+        # pin are given in BCM schema, for Draguino Board
+        self._pin_ss = 25  # GPIO 6
         self._pin_dio0 = 4  # GPIO 7
         self._pin_rst = 17  # GPIO 0
 
         self._spi_bus = 0
-        self._spi_cs = 0    # TODO: Draguino has it's own non-standard CS pin
+        self._spi_cs = 0  # TODO: Draguino has it's own non-standard CS pin
 
         self.spi = None
         self._is_sx1272 = None  # is set in setup
+
+        self._mode = None
 
     def __enter__(self):
         self.setup_device()
@@ -38,10 +35,6 @@ class LoraBoardDraguino():
         GPIO.setup(self._pin_ss, GPIO.OUT)
         GPIO.setup(self._pin_dio0, GPIO.IN)
         GPIO.setup(self._pin_rst, GPIO.OUT)
-
-        # save default values
-        #GPIO.output(self._pin_ss, 1)
-        #GPIO.output(self._pin_rst, 0)
 
     def _init_spi(self):
         self.spi = spidev.SpiDev()
@@ -78,42 +71,29 @@ class LoraBoardDraguino():
                 logging.critical("Unrecognized transceiver")
                 raise RuntimeError("Unrecognized transceiver")
 
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
+        # set sleep mode
+        self.mode = 0x00 | 0x80  # Mode Sleep | Long Range Mode
+        time.sleep(0.01)  # wait for sleep mode
+        assert self.mode == (0x00 | 0x80)
 
-        frf = int((self.frequency << 19) / 32000000)
-        self.write_register(SX127x.REG_FRF_MSB, (frf >> 16) & 0xFF)
-        self.write_register(SX127x.REG_FRF_MID, (frf >> 8) & 0xFF)
-        self.write_register(SX127x.REG_FRF_LSB, frf & 0xFF)
+        # Set up FIFO, either receive or transmit (but not both at same time)
+        self.write_register(SX127x.REG_FIFO_TX_BASE_AD, 0)
+        self.write_register(SX127x.REG_FIFO_RX_BASE_AD, 0)
 
-        self.write_register(SX127x.REG_SYNC_WORD, 0x34);  # LoRaWAN public sync word
+        self.mode = 0x01  # Mode Standby
 
-        if self._is_sx1272:
-            if self.sf == 11 or self.sf == 12:
-                self.write_register(SX127x.REG_MODEM_CONFIG, 0x0B)
-            else:
-                self.write_register(SX127x.REG_MODEM_CONFIG, 0x0A)
-            self.write_register(SX127x.REG_MODEM_CONFIG2, (self.sf << 4) | 0x04)
-        else:
-            if self.sf == 11 or self.sf == 12:
-                self.write_register(SX127x.REG_MODEM_CONFIG3, 0x0C)
-            else:
-                self.write_register(SX127x.REG_MODEM_CONFIG3, 0x04)
-            self.write_register(SX127x.REG_MODEM_CONFIG, 0x72)  # 125kHz 4/5
-            self.write_register(SX127x.REG_MODEM_CONFIG2, (self.sf << 4) | 0x04)  # enable CTC
+        # Bw125Cr45Sf128 (chip default)
+        self.write_register(SX127x.REG_MODEM_CONFIG, 0x72)  # 125kHz 4/5
+        self.write_register(SX127x.REG_MODEM_CONFIG2, (self.sf << 4) | 0x04)  # SF7, enable CTC
+        self.write_register(SX127x.REG_MODEM_CONFIG3, 0x00)
 
-        if self.sf == 10 or self.sf == 11 or self.sf == 12:
-            self.write_register(SX127x.REG_SYMB_TIMEOUT_LSB, 0x05)
-        else:
-            self.write_register(SX127x.REG_SYMB_TIMEOUT_LSB, 0x08)
+        # set preamble to 8
+        self.write_register(0x20, 0)
+        self.write_register(0x21, 8)
 
-        self.write_register(SX127x.REG_MAX_PAYLOAD_LENGTH, 0x80)
-        self.write_register(SX127x.REG_PAYLOAD_LENGTH, 0x80)
-        #self.write_register(SX127x.REG_HOP_PERIOD, 0xFF)
-        self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.read_register(SX127x.REG_FIFO_RX_BASE_AD))
+        self.frequency = 433300000
 
-        # Set Continous Receive Mode
-        self.write_register(SX127x.REG_LNA, SX127x.LNA_MAX_GAIN)
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_RX_CONTINUOS)
+        self.tx_power = 13
 
     def teardown_device(self):
         logging.info("tear down transceiver...")
@@ -129,6 +109,15 @@ class LoraBoardDraguino():
 
         return value
 
+    def read_register_burst(self, register, n):
+        GPIO.output(self._pin_ss, 0)
+
+        value = self.spi.xfer([register & 0x7F] + [0]*n)[1:]
+
+        GPIO.output(self._pin_ss, 1)
+
+        return value
+
     def write_register(self, register, value):
         GPIO.output(self._pin_ss, 0)
 
@@ -137,33 +126,80 @@ class LoraBoardDraguino():
         GPIO.output(self._pin_ss, 1)
 
     def receive_package(self):
-        self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
+        #self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
 
         irqflags = self.read_register(SX127x.REG_IRQ_FLAGS)
+        if not irqflags & 0x40:
+            self.write_register(SX127x.REG_IRQ_FLAGS, 0xFF)  # clear all IRQ flags
+            return None  # RX not done yet
         if irqflags & 0x20:
             logging.warning("CRC error")
             self.write_register(SX127x.REG_IRQ_FLAGS, 0x20)
             crc = False
-            #return {'datetime': datetime.datetime.now(),
-            #         'crc': False}  # TODO: still get payload?
         else:
             crc = True
 
-        current_addr = self.read_register(SX127x.REG_FIFO_RX_CURRENT_ADDR)
         received_count = self.read_register(SX127x.REG_RX_NB_BYTES)
 
+        current_addr = self.read_register(SX127x.REG_FIFO_RX_CURRENT_ADDR)
         self.write_register(SX127x.REG_FIFO_ADDR_PTR, current_addr)
 
         payload = bytearray()
-        for _ in range(received_count):
-            payload.append(self.read_register(SX127x.REG_FIFO))
+        payload.extend(self.read_register_burst(SX127x.REG_FIFO, received_count))
+        #for _ in range(received_count):
+        #    payload.append(self.read_register(SX127x.REG_FIFO))
 
-        return {'datetime': datetime.datetime.now(),
+        pkg = {'datetime': datetime.datetime.now(),
                 'crc': crc,
                 'pkt_snr': self.pkt_snr,
                 'pkt_rssi': self.pkt_rssi,
                 'rssi': self.rssi,
                 'payload:': bytes(payload)}
+
+        self.write_register(SX127x.REG_IRQ_FLAGS, 0xFF)  # clear all IRQ flags
+
+        return pkg
+
+    @property
+    def mode(self):
+        self._mode = self.read_register(SX127x.REG_OPMODE)
+        return self._mode
+
+    @mode.setter
+    def mode(self, mode):
+        if self._mode != mode:
+            self._mode = mode
+            self.write_register(SX127x.REG_OPMODE, mode)
+
+    @property
+    def frequency(self):
+        raise NotImplementedError("getFrequency not implemented yet!")
+
+    @frequency.setter
+    def frequency(self, value):
+        frf = int((value << 19) / 32000000)
+        self.write_register(SX127x.REG_FRF_MSB, (frf >> 16) & 0xFF)
+        self.write_register(SX127x.REG_FRF_MID, (frf >> 8) & 0xFF)
+        self.write_register(SX127x.REG_FRF_LSB, frf & 0xFF)
+
+    @property
+    def tx_power(self):
+        raise NotImplementedError("getTxPower not implemented yet!")
+
+    @mode.setter
+    def tx_power(self, power):
+        if power > 23:
+            power = 23
+        elif power < 5:
+            power = 5
+
+        if power > 20:
+            self.write_register(0x4D, 0x07)  # PA_DAC_ENABLE
+            power -= 3
+        else:
+            self.write_register(0x4D, 0x04)  # PA_DAC_DISABLE
+
+        self.write_register(0x4D, 0x09 | (power-5))  # PA_SELECT | (power-5)
 
     @property
     def pkt_snr(self):
