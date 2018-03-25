@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 from random import randint
+import socket
 
 from board_config import LoraBoardDraguino
 import RPi.GPIO as GPIO
@@ -11,6 +12,9 @@ import RPi.GPIO as GPIO
 
 logging.basicConfig(level=logging.DEBUG)
 
+
+GATEWAY_HOST = "eu.thethings.network"
+GATEWAY_PORT = 1700
 
 def construct_semtec_udp(board, payload):
     # https://github.com/Lora-net/packet_forwarder/blob/d0226eae6e7b6bbaec6117d0d2372bf17819c438/PROTOCOL.TXT#L99
@@ -40,13 +44,19 @@ def construct_semtec_udp(board, payload):
     return bytes(frame)
 
 
-
 if __name__ == "__main__":
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
     with LoraBoardDraguino(433300000, 7) as board:
         logging.info("Listening at SF{} on {} MHz".format(board.sf, board.frequency/1000000))
 
         while True:
             if GPIO.input(board._pin_dio0) == 1:
                 payload = board.receive_package()
-                logging.info(construct_semtec_udp(board, payload))
+
+                semtec_udp = construct_semtec_udp(board, payload)
+
+                sock.sendto(semtec_udp, (GATEWAY_HOST, GATEWAY_PORT))
+
+                logging.info(semtec_udp)
                 logging.info("Received: \"{}\"".format(payload['payload']))
