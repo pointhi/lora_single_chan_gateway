@@ -54,9 +54,8 @@ if __name__ == "__main__":
             if GPIO.input(board._pin_dio0) == 1:
                 payload = board.receive_package()
 
-                semtec_udp = construct_semtec_udp(board, payload)
+                #semtec_udp = construct_semtec_udp(board, payload)
+                #sock.sendto(semtec_udp, (GATEWAY_HOST, GATEWAY_PORT))
+                #logging.info(semtec_udp)
 
-                sock.sendto(semtec_udp, (GATEWAY_HOST, GATEWAY_PORT))
-
-                logging.info(semtec_udp)
-                logging.info("Received: \"{}\"".format(payload['payload']))
+                logging.info("Received: {}".format(payload))
