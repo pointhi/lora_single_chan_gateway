@@ -31,7 +31,7 @@ def construct_semtec_udp(board, payload):
                 "rssi": payload['pkt_rssi'],
                 "lsnr": payload['pkt_snr'],
                 "size": len(payload['payload']),
-                "data": base64.standard_b64encode(payload['payload'])
+                "data": str(base64.standard_b64encode(payload['payload']))
             }
     }
 
@@ -49,4 +49,4 @@ if __name__ == "__main__":
             if GPIO.input(board._pin_dio0) == 1:
                 payload = board.receive_package()
                 logging.info(construct_semtec_udp(board, payload))
-                #logging.info("Received: {}".format(payload))
+                logging.info("Received: \"{}\"".format(payload['payload']))
