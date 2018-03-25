@@ -35,7 +35,7 @@ def construct_semtec_udp(board, payload):
                 "rssi": payload['pkt_rssi'],
                 "lsnr": payload['pkt_snr'],
                 "size": len(payload['payload']),
-                "data": str(base64.standard_b64encode(payload['payload']))
+                "data": base64.standard_b64encode(payload['payload']).decode("utf-8")
             }
     }
 
