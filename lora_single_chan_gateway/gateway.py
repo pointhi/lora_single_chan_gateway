@@ -35,7 +35,7 @@ def construct_semtec_udp(board, payload):
             }
     }
 
-    frame.extend(json.dumps(data))
+    frame.extend(map(ord,json.dumps(data)))
 
     return bytes(frame)
 
