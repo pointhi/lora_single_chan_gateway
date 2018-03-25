@@ -84,7 +84,7 @@ class RF95(object):
 
         # Bw125Cr45Sf128 (chip default)
         self.write_register(SX127x.REG_MODEM_CONFIG, 0x72)  # 125kHz 4/5
-        self.write_register(SX127x.REG_MODEM_CONFIG2, (self.sf << 4) | 0x04)  # SF7, enable CTC
+        self.write_register(SX127x.REG_MODEM_CONFIG2, (7 << 4) | 0x04)  # SF7, enable CTC
         self.write_register(SX127x.REG_MODEM_CONFIG3, 0x00)
 
         # set preamble to 8
