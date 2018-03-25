@@ -163,7 +163,7 @@ class LoraBoardDraguino():
                 'pkt_snr': self.pkt_snr,
                 'pkt_rssi': self.pkt_rssi,
                 'rssi': self.rssi,
-                'payload:': bytes(payload)}
+                'payload': bytes(payload)}
 
     @property
     def pkt_snr(self):

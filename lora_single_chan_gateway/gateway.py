@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import base64
+import json
 import logging
+from random import randint
 
 from board_config import LoraBoardDraguino
 import RPi.GPIO as GPIO
@@ -11,7 +13,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def construct_semtec_udp(board, payload):
-    return {
+    # https://github.com/Lora-net/packet_forwarder/blob/d0226eae6e7b6bbaec6117d0d2372bf17819c438/PROTOCOL.TXT#L99
+    frame = bytearray()
+    frame.append(2)  # Protocol version = 2
+    frame.extend([randint(0, 255), randint(0, 255)])  # Random numbers
+    frame.extend([0x80, 0xFA, 0x5C, 0xFF, 0xFF, 0x69, 0x33, 0xBB])  # TODO: construct from hardware
+
+    data = {
         "rxpk":
             {
                 "time": payload['datetime'].isoformat(),
@@ -26,6 +34,10 @@ def construct_semtec_udp(board, payload):
                 "data": base64.standard_b64encode(payload['payload'])
             }
     }
+
+    frame.extend(json.dumps(data))
+
+    return bytes(frame)
 
 
 
