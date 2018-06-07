@@ -48,6 +48,7 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 
     with LoraBoardDraguino(433300000, 7) as board:
+        board.set_mode_rx()
         logging.info("Listening at SF{} on {} MHz".format(board.sf, board.frequency/1000000))
 
         while True:

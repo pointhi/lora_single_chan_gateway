@@ -111,7 +111,7 @@ class LoraBoardDraguino():
         #self.write_register(SX127x.REG_HOP_PERIOD, 0xFF)
         self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.read_register(SX127x.REG_FIFO_RX_BASE_AD))
 
-        # Set Continous Receive Mode
+        # Set Continuous Receive Mode
         self.write_register(SX127x.REG_LNA, SX127x.LNA_MAX_GAIN)
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_RX_CONTINUOS)
 
@@ -142,6 +142,9 @@ class LoraBoardDraguino():
         self.spi.xfer([register | 0x80] + list(values))
 
         GPIO.output(self._pin_ss, 1)
+
+    def set_mode_rx(self):
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_RX_CONTINUOS)
 
     def receive_package(self):
         self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
@@ -176,7 +179,7 @@ class LoraBoardDraguino():
         assert type(msg) == bytes
         assert len(msg) <= 255
 
-        self.wait_until_send()
+        # TODO: wait until send (done at end)
 
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
 
@@ -188,9 +191,13 @@ class LoraBoardDraguino():
 
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_TX)
 
+        self.wait_until_send()
+
     def wait_until_send(self):
-        while self.read_register(SX127x.REG_OPMODE) == SX127x.SX72_MODE_TX:
+        while self.read_register(SX127x.REG_IRQ_FLAGS) & 0x08 == 0:
             pass  # busy waiting
+
+        self.write_register(SX127x.REG_IRQ_FLAGS, 0x08)  # Clear TX DONE
 
     @property
     def pkt_snr(self):
@@ -245,10 +252,15 @@ class SX127x:
     REG_SYNC_WORD               = 0x39
     REG_VERSION                 = 0x42
 
-    SX72_MODE_RX_CONTINUOS      = 0x85
-    SX72_MODE_TX                = 0x83
-    SX72_MODE_SLEEP             = 0x80
-    SX72_MODE_STANDBY           = 0x81
+    SX72_MODE_LONG_RANGE        = 0x80
+
+    SX72_MODE_SLEEP             = 0x00
+    SX72_MODE_STANDBY           = 0x01
+    SX72_MODE_FSTX              = 0x02
+    SX72_MODE_TX                = 0x03
+    SX72_MODE_FSRX              = 0x04
+    SX72_MODE_RX_CONTINUOS      = 0x05
+    SX72_MODE_RX_SINGLE         = 0x06
 
     LNA_MAX_GAIN                = 0x23
     LNA_OFF_GAIN                = 0x00

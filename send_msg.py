@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 
 from lora_single_chan_gateway.board_config import LoraBoardDraguino
+
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
