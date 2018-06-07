@@ -111,6 +111,8 @@ class LoraBoardDraguino():
         #self.write_register(SX127x.REG_HOP_PERIOD, 0xFF)
         self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.read_register(SX127x.REG_FIFO_RX_BASE_AD))
 
+        self.write_register(SX127x.REG_PA_CONFIG, 0) # set to a very low value
+
         # Set Continuous Receive Mode
         self.write_register(SX127x.REG_LNA, SX127x.LNA_MAX_GAIN)
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_LONG_RANGE | SX127x.SX72_MODE_RX_CONTINUOS)
@@ -230,6 +232,7 @@ class SX127x:
     REG_FRF_MSB                 = 0x06
     REG_FRF_MID                 = 0x07
     REG_FRF_LSB                 = 0x08
+    REG_PA_CONFIG               = 0x09
     REG_LNA                     = 0x0C
     REG_FIFO_ADDR_PTR           = 0x0D
     REG_FIFO_TX_BASE_AD         = 0x0E
