@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    GATEWAY_HEADER = bytes([args.__dict__['from'], args.to, args.id, args.flags])
+    GATEWAY_HEADER = bytes([args.to, args.__dict__['from'], args.id, args.flags])
 
     with LoraBoardDraguino(433300000, 7) as board:
         msg = GATEWAY_HEADER + args.message.encode('utf-8')
