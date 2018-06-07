@@ -17,7 +17,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with LoraBoardDraguino(433300000, 7) as board:
-        GATEWAY_HEADER = bytes([args['from'], args['to'], args['id'], args['flags']])
+    GATEWAY_HEADER = bytes([args.__dict__['from'], args.to, args.id, args.flags])
 
-        board.send_package(GATEWAY_HEADER + args.message.encode('utf-8'))
+    with LoraBoardDraguino(433300000, 7) as board:
+        msg = GATEWAY_HEADER + args.message.encode('utf-8')
+        print(msg)
+
+        board.send_package(msg)
