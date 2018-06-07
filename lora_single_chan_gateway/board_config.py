@@ -136,6 +136,13 @@ class LoraBoardDraguino():
 
         GPIO.output(self._pin_ss, 1)
 
+    def write_bulk_register(self, register, values):
+        GPIO.output(self._pin_ss, 0)
+
+        self.spi.xfer([register | 0x80] + list(values))
+
+        GPIO.output(self._pin_ss, 1)
+
     def receive_package(self):
         self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
 
@@ -164,6 +171,26 @@ class LoraBoardDraguino():
                 'pkt_rssi': self.pkt_rssi,
                 'rssi': self.rssi,
                 'payload': bytes(payload)}
+
+    def send_package(self, msg):
+        assert type(msg) == bytes
+        assert len(msg) <= 255
+
+        self.wait_until_send()
+
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
+
+        self.write_register(SX127x.REG_FIFO_ADDR_PTR, 0)
+
+        self.write_bulk_register(SX127x.REG_FIFO, msg)
+
+        self.write_register(SX127x.REG_PAYLOAD_LENGTH, len(msg))
+
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_TX)
+
+    def wait_until_send(self):
+        while self.read_register(SX127x.REG_OPMODE) == SX127x.SX72_MODE_TX:
+            pass  # busy waiting
 
     @property
     def pkt_snr(self):
