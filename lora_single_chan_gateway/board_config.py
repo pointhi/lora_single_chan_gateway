@@ -183,7 +183,7 @@ class LoraBoardDraguino():
 
         self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
 
-        self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.write_register(SX127x.REG_FIFO_TX_BASE_AD))
+        self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.read_register(SX127x.REG_FIFO_TX_BASE_AD))
 
         self.write_register(SX127x.REG_PAYLOAD_LENGTH, len(msg))
 
