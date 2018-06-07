@@ -78,7 +78,7 @@ class LoraBoardDraguino():
                 logging.critical("Unrecognized transceiver")
                 raise RuntimeError("Unrecognized transceiver")
 
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_LONG_RANGE | SX127x.SX72_MODE_SLEEP)
 
         frf = int((self.frequency << 19) / 32000000)
         self.write_register(SX127x.REG_FRF_MSB, (frf >> 16) & 0xFF)
@@ -113,7 +113,7 @@ class LoraBoardDraguino():
 
         # Set Continuous Receive Mode
         self.write_register(SX127x.REG_LNA, SX127x.LNA_MAX_GAIN)
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_RX_CONTINUOS)
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_LONG_RANGE | SX127x.SX72_MODE_RX_CONTINUOS)
 
     def teardown_device(self):
         logging.info("tear down transceiver...")
@@ -144,7 +144,7 @@ class LoraBoardDraguino():
         GPIO.output(self._pin_ss, 1)
 
     def set_mode_rx(self):
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_RX_CONTINUOS)
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_LONG_RANGE | SX127x.SX72_MODE_RX_CONTINUOS)
 
     def receive_package(self):
         self.write_register(SX127x.REG_IRQ_FLAGS, 0x40)  # clear rxDone
@@ -181,7 +181,7 @@ class LoraBoardDraguino():
 
         # TODO: wait until send (done at end)
 
-        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_SLEEP)
+        self.write_register(SX127x.REG_OPMODE, SX127x.SX72_MODE_STANDBY)
 
         self.write_register(SX127x.REG_FIFO_ADDR_PTR, self.read_register(SX127x.REG_FIFO_TX_BASE_AD))
 
