@@ -47,7 +47,7 @@ class LoRaPacketsDB(object):
             `PKT_SNR`,
             `PKT_RSSI`,
             `RSSI`
-        ) VALUES (?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         try:
             self.c.execute(query, (payload['datetime'].isoformat(),
