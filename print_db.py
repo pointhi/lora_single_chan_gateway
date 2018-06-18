@@ -17,10 +17,11 @@ if __name__ == "__main__":
             msg = {'id': line[0],
                    'datetime': line[1],
                    'data': bytes(line[2]).hex(),
-                   'crc': line[3],
-                   'pkt_snr': line[4],
-                   'pkt_rssi': line[4],
-                   'rssi': line[4]}
+                   'frequency': line[3],
+                   'crc': line[4],
+                   'pkt_snr': line[5],
+                   'pkt_rssi': line[6],
+                   'rssi': line[7]}
 
             decoded = decode_msg(msg['data'])
 
